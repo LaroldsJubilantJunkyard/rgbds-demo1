@@ -64,15 +64,19 @@ CopyHappyFace:
 	or a, c
 	jp nz, CopyHappyFace
 
+
+ClearOam:
 	 
 	; Start clearing oam
 	ld a, 0
     ld b, 160 ; 40 sprites times 4 bytes per sprite
     ld hl, _OAMRAM ; The start of our oam sprites in RAM
-ClearOam:
+ClearOamLoop:
     ld [hli], a
     dec b
-    jp nz, ClearOam
+    jp nz, ClearOamLoop
+
+
 
 
 	ld hl, _OAMRAM
@@ -88,8 +92,18 @@ ClearOam:
 	ld [wBallPosition+1] , a
 	ld a, 5
 	ld [wBallPosition+0] , a
+	ld a, 0
+	ld [wBallPosition+3] , a
+	ld a, 5
+	ld [wBallPosition+2] , a
 
-	call ShiftAndStoreX
+	ld hl, wBallPosition
+	ld b, 0
+	call Update_SpriteB_XPositionFromHL
+	
+	ld hl, wBallPosition+2
+	ld b, 0
+	call Update_SpriteB_YPositionFromHL
 
 	; Turn the LCD on
 	ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
@@ -120,15 +134,80 @@ Loop:
 
 	ld a, [wCurKeys]
 	and a, PADF_RIGHT
-	jp nz, MoveRight
+	call nz, MoveRight
 
 	ld a, [wCurKeys]
 	and a, PADF_LEFT
-	jp nz, MoveLeft
+	call nz, MoveLeft
+
+	ld a, [wCurKeys]
+	and a, PADF_DOWN
+	call nz, MoveDown
+
+	ld a, [wCurKeys]
+	and a, PADF_UP
+	call nz, MoveUp
 
 	jp Loop
 
+MoveDown:
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; Increase the x position of the ball ;;
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	ld hl, wBallPosition+2
+	ld b,5 ; move speed
+	call IncreaseTwoBytesInHL_ByB
+
+	ld b,0 ; which sprite
+	call Update_SpriteB_YPositionFromHL
+	ret
+
+MoveUp:
+
+	ld hl, wBallPosition+2
+	ld b,5 ; move speed
+	call DecreaseTwoBytesInHL_ByB
+
+	ld b,0 ; which sprite
+	call Update_SpriteB_YPositionFromHL
+
+	ret
+
 MoveRight:
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;; Increase the x position of the ball ;;
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	ld hl, wBallPosition
+	ld b,5 ; move speed
+	call IncreaseTwoBytesInHL_ByB
+
+	ld b,0 ; which sprite
+	call Update_SpriteB_XPositionFromHL
+	ret
+
+MoveLeft:
+
+	ld hl, wBallPosition
+	ld b,5 ; move speed
+	call DecreaseTwoBytesInHL_ByB
+
+	
+	ld b,0 ; which sprite
+	call Update_SpriteB_XPositionFromHL
+
+	ret
+
+IncreaseTwoBytesInHL_ByB:
+	
+	ld a,l
+	add a, 1
+	ld l, a
+
+	ld a, h
+	adc a, 0
+	ld h, a
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; Increase the x position of the ball ;;
@@ -137,22 +216,41 @@ MoveRight:
 	; load our low byte value into a
 	; Add some to the low byte
 	; then update our low byte register (l) and wram variable
-	ld a, [wBallPosition+1] 
-	add a, 2
-	ld [wBallPosition+1] ,a
+	ld a, [hl] 
+	add a, b
+	ld [hl] ,a
+
+	; Save this carry over in b
+	ld a, 0
+	adc a,0
+	ld b,a
+
+	ld a, l
+	sub a, 1
+	ld l, a
+
+	ld a, h
+	sbc a, 0
+	ld h, a
 
 	; load our high byte value into a
 	; add the carry over from the previous add to our high byte
 	; then updae our high byte register (h) and wram varaible
-	ld a, [wBallPosition+0] 
+	ld a, [hl] 
+	adc a, b
+	ld [hl] ,a
+
+	ret
+
+DecreaseTwoBytesInHL_ByB:
+	
+	ld a,l
+	add a, 1
+	ld l, a
+
+	ld a, h
 	adc a, 0
-	ld [wBallPosition+0] ,a
-
-	call ShiftAndStoreX
-
-	jp Loop
-
-MoveLeft:
+	ld h, a
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;; Decrease the x position of the ball ;;
@@ -161,22 +259,35 @@ MoveLeft:
 	; load our low byte value into a
 	; subtract some from the low byte
 	; then update our low byte  wram variable
-	ld a, [wBallPosition+1] 
-	sub a, 2
-	ld [wBallPosition+1] ,a
+	ld a, [hl] 
+	sub a, b
+	ld [hl] ,a
+
+	; Save this carry over in b
+	ld a, 0
+	adc a,0
+	ld b,a
+
+	ld a,l
+	sub a, 1
+	ld l,a
+
+	ld a, h
+	sbc a, 0
+	ld h, a
 
 	; load our high byte value into a
 	; subtract the carry over from the previous add to our low byte
 	; then update our high byte  wram varaible
-	ld a, [wBallPosition+0] 
-	SBC a, 0
-	ld [wBallPosition+0] ,a
+	ld a, [hl] 
+	sbc a, b
+	ld [hl] ,a
 
-	call ShiftAndStoreX
 
-	jp Loop
 
-ShiftAndStoreX:
+	ret
+
+Update_SpriteB_XPositionFromHL:
 
 	; load the low byte of wBallposition into 'l'
 	; load the high byte into h
@@ -184,6 +295,31 @@ ShiftAndStoreX:
 	ld l, a
 	ld a, [wBallPosition+0] 
 	ld h, a
+	
+	call ShiftHL
+
+	ld c,1 ; which oam attribute (will be external)
+	call Update_SpriteB_AttributeC
+
+	ret
+
+Update_SpriteB_YPositionFromHL:
+
+	; load the low byte of wBallposition into 'l'
+	; load the high byte into h
+	ld a, [wBallPosition+3] 
+	ld l, a
+	ld a, [wBallPosition+2] 
+	ld h, a
+	
+	call ShiftHL
+
+	ld c,0 ; which oam attribute (will be external)
+	call Update_SpriteB_AttributeC
+
+	ret
+
+ShiftHL:
 
 	; Shift the high byte to the right
 	; Then rand carry over 
@@ -196,14 +332,69 @@ ShiftAndStoreX:
 	rr l
 	srl h
 	rr l
+
+	ret
+
+Update_SpriteB_AttributeC:
+
+	; Starting sprite 0
+	ld d, 0
+
+Update_SpriteB_AttributeC_Loop:
+
+	;; Is the sprite 0?
+	ld a, b
+	cp a, 0
+
+	;; If b is zero, start the update
+	jp z, Update_SpriteB_AttributeC_Finish
+
+	; Decrease d by 2
+	ld a, d
+	add a, 2
+	ld d, a
+
+	;; Decrease b by 1
+	ld a, b
+	dec a
+	ld b, a
+
+	jp Update_SpriteB_AttributeC_Loop
+
+Update_SpriteB_AttributeC_Finish:
 	
 	; Get the address of sprite 0's x position
+	ld de, _OAMRAM
+
+	; Add the oam sprite value from b
+	; add b (which oam sprite, a multiple of 2) to d
+	ld a, e
+	add a, b
+	ld e,a
+
+	; Add the carry over to e
+	ld a, d
+	adc a, 0
+	ld d,a
+	
+	; Add the oam attribute from c
+	; add b (which oam attribute, 0-3) to d
+	ld a, e
+	add a, c
+	ld e,a
+
+	; Add the carry over to e
+	ld a, d
+	adc a, 0
+	ld d,a
+
 	; Copy the lower byte into the x position
-	ld de, _OAMRAM+1
 	ld a, l
 	ld [de], a
 
 	ret
+
+
 
 SECTION "Tile data", ROM0
 

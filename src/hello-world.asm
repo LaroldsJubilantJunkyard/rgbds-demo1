@@ -78,9 +78,18 @@ ClearOamLoop:
 
 
 
-
 	ld hl, _OAMRAM
-	ld a, 80+16
+	ld a, 40+16
+	ld [hli], a
+	ld a, 80+8
+	ld [hli], a
+	ld a, 0 ; Use tile zero
+	ld [hli], a
+	ld [hl], a
+
+
+	ld hl, _OAMRAM+4
+	ld a, 120+16
 	ld [hli], a
 	ld a, 80+8
 	ld [hli], a
@@ -94,16 +103,25 @@ ClearOamLoop:
 	ld [wBallPosition+0] , a
 	ld a, 0
 	ld [wBallPosition+3] , a
-	ld a, 5
+	ld a, 2
 	ld [wBallPosition+2] , a
+
+	ld a, 0
+	ld [wBallPosition2+1] , a
+	ld a, 5
+	ld [wBallPosition2+0] , a
+	ld a, 0
+	ld [wBallPosition2+3] , a
+	ld a, 7
+	ld [wBallPosition2+2] , a
 
 	ld hl, wBallPosition
 	ld b, 0
-	call Update_SpriteB_XPositionFromHL
+	call Update_SpriteB_XPosition_ToValuePointedToByHL
 	
 	ld hl, wBallPosition+2
-	ld b, 0
-	call Update_SpriteB_YPositionFromHL
+	ld b, 1
+	call Update_SpriteB_YPosition_ToValuePointedToByHL
 
 	; Turn the LCD on
 	ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
@@ -148,6 +166,16 @@ Loop:
 	and a, PADF_UP
 	call nz, MoveUp
 
+	; Move sprite 1 downward by 1
+
+	ld hl, wBallPosition2
+	ld b, 1
+	call IncreaseTwoBytes_PointedToByHL_ByB
+
+	ld b,1 ; which sprite
+	call Update_SpriteB_XPosition_ToValuePointedToByHL
+
+
 	jp Loop
 
 MoveDown:
@@ -157,20 +185,21 @@ MoveDown:
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	ld hl, wBallPosition+2
 	ld b,5 ; move speed
-	call IncreaseTwoBytesInHL_ByB
+	call IncreaseTwoBytes_PointedToByHL_ByB
 
 	ld b,0 ; which sprite
-	call Update_SpriteB_YPositionFromHL
+	call Update_SpriteB_YPosition_ToValuePointedToByHL
 	ret
 
 MoveUp:
 
 	ld hl, wBallPosition+2
 	ld b,5 ; move speed
-	call DecreaseTwoBytesInHL_ByB
+	call DecreaseTwoBytes_PointedToByHL_ByB
+
 
 	ld b,0 ; which sprite
-	call Update_SpriteB_YPositionFromHL
+	call Update_SpriteB_YPosition_ToValuePointedToByHL
 
 	ret
 
@@ -181,25 +210,25 @@ MoveRight:
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	ld hl, wBallPosition
 	ld b,5 ; move speed
-	call IncreaseTwoBytesInHL_ByB
+	call IncreaseTwoBytes_PointedToByHL_ByB
 
 	ld b,0 ; which sprite
-	call Update_SpriteB_XPositionFromHL
+	call Update_SpriteB_XPosition_ToValuePointedToByHL
 	ret
 
 MoveLeft:
 
 	ld hl, wBallPosition
 	ld b,5 ; move speed
-	call DecreaseTwoBytesInHL_ByB
+	call DecreaseTwoBytes_PointedToByHL_ByB
 
 	
 	ld b,0 ; which sprite
-	call Update_SpriteB_XPositionFromHL
+	call Update_SpriteB_XPosition_ToValuePointedToByHL
 
 	ret
 
-IncreaseTwoBytesInHL_ByB:
+IncreaseTwoBytes_PointedToByHL_ByB:
 	
 	ld a,l
 	add a, 1
@@ -242,7 +271,7 @@ IncreaseTwoBytesInHL_ByB:
 
 	ret
 
-DecreaseTwoBytesInHL_ByB:
+DecreaseTwoBytes_PointedToByHL_ByB:
 	
 	ld a,l
 	add a, 1
@@ -287,95 +316,62 @@ DecreaseTwoBytesInHL_ByB:
 
 	ret
 
-Update_SpriteB_XPositionFromHL:
+Update_SpriteB_XPosition_ToValuePointedToByHL:
 
-	; load the low byte of wBallposition into 'l'
-	; load the high byte into h
-	ld a, [wBallPosition+1] 
-	ld l, a
-	ld a, [wBallPosition+0] 
-	ld h, a
-	
-	call ShiftHL
+	push hl
+
+	call ShiftValuePointedToByHL_AndStoreResultInHL
 
 	ld c,1 ; which oam attribute (will be external)
-	call Update_SpriteB_AttributeC
+	call Update_SpriteB_AttributeC_UsingLowerByteInHL
+
+	pop hl
 
 	ret
 
-Update_SpriteB_YPositionFromHL:
+Update_SpriteB_YPosition_ToValuePointedToByHL:
 
-	; load the low byte of wBallposition into 'l'
-	; load the high byte into h
-	ld a, [wBallPosition+3] 
-	ld l, a
-	ld a, [wBallPosition+2] 
-	ld h, a
+	push hl
 	
-	call ShiftHL
+	call ShiftValuePointedToByHL_AndStoreResultInHL
 
 	ld c,0 ; which oam attribute (will be external)
-	call Update_SpriteB_AttributeC
+	call Update_SpriteB_AttributeC_UsingLowerByteInHL
+
+	pop hl
 
 	ret
 
-ShiftHL:
+ShiftValuePointedToByHL_AndStoreResultInHL:
+
+	ld a, [hli]
+	ld d, a
+	ld a, [hld]
+	ld e, a
 
 	; Shift the high byte to the right
 	; Then rand carry over 
 	; repeat multiple times
-	srl h
-	rr l
-	srl h
-	rr l
-	srl h
-	rr l
-	srl h
-	rr l
+	srl d
+	rr e
+	srl d
+	rr e
+	srl d
+	rr e
+	srl d
+	rr e
+
+	ld a, d
+	ld h, a
+	ld a, e
+	ld l, a
 
 	ret
 
-Update_SpriteB_AttributeC:
-
-	; Starting sprite 0
-	ld d, 0
-
-Update_SpriteB_AttributeC_Loop:
-
-	;; Is the sprite 0?
-	ld a, b
-	cp a, 0
-
-	;; If b is zero, start the update
-	jp z, Update_SpriteB_AttributeC_Finish
-
-	; Decrease d by 2
-	ld a, d
-	add a, 2
-	ld d, a
-
-	;; Decrease b by 1
-	ld a, b
-	dec a
-	ld b, a
-
-	jp Update_SpriteB_AttributeC_Loop
-
-Update_SpriteB_AttributeC_Finish:
+Update_SpriteB_AttributeC_UsingLowerByteInHL:
 	
 	; Get the address of sprite 0's x position
 	ld de, _OAMRAM
-
-	; Add the oam sprite value from b
-	; add b (which oam sprite, a multiple of 2) to d
-	ld a, e
-	add a, b
-	ld e,a
-
-	; Add the carry over to e
-	ld a, d
-	adc a, 0
-	ld d,a
 	
 	; Add the oam attribute from c
 	; add b (which oam attribute, 0-3) to d
@@ -387,6 +383,33 @@ Update_SpriteB_AttributeC_Finish:
 	ld a, d
 	adc a, 0
 	ld d,a
+
+Update_SpriteB_AttributeC_UsingLowerByteInHL_Loop:
+
+	;; Is the sprite 0?
+	ld a, b
+	cp a, 0
+
+	;; If b is zero, start the update
+	jp z, Update_SpriteB_AttributeC_UsingLowerByteInHL_Finish
+
+	; Decrease de by 4
+	ld a, e
+	add a, 4
+	ld e, a
+
+	ld a, d
+	adc a, 0
+	ld d,a
+
+	;; Decrease b by 1
+	ld a, b
+	dec a
+	ld b, a
+
+	jp Update_SpriteB_AttributeC_UsingLowerByteInHL_Loop
+
+Update_SpriteB_AttributeC_UsingLowerByteInHL_Finish:
 
 	; Copy the lower byte into the x position
 	ld a, l
@@ -500,6 +523,13 @@ SECTION "Counter", WRAM0
 ; Our ball's position
 ; first byte is high, second is low
 wBallPosition: 
+	.x dw
+	.y dw
+
+
+; Our ball's position
+; first byte is high, second is low
+wBallPosition2: 
 	.x dw
 	.y dw
 

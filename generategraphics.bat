@@ -1,0 +1,1 @@
+rgbgfx -c '#FFFFFF,#C83008,#f8e040,#a07800;' -o FlappyBird.2bpp  ./src/resources/FlappyBird.png

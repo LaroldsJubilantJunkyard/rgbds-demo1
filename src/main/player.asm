@@ -262,8 +262,7 @@ UpdatePlayerSpriteOAMPosition:
 
 	; Get our low bit
 	; that's our y coordinate
-	ld a, c
-    ld [_OAMRAM + 0], a
+	ld d, c
 
 
 	; load our value into bc
@@ -284,12 +283,13 @@ UpdatePlayerSpriteOAMPosition:
 	srl b
 	rr c
 
-	; Get our low bit
-	; that's our x coordinate
+	
+	ld a, d
+	ld [wDrawMetasprites_MetaspritePosition.y], a
 	ld a, c
+	ld [wDrawMetasprites_MetaspritePosition.x], a
 
-	; Draw our x at a
-    ld [_OAMRAM +1], a
+	LoadMetaspriteAddressAndDraw wCircleSprite
 
 	ret
 

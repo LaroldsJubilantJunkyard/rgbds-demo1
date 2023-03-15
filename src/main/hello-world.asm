@@ -1,6 +1,7 @@
 INCLUDE "src/main/hardware.inc"
 include "src/main/happy-face.z80"
 include "src/main/happy-face.inc"
+include "src/main/metasprites.asm"
 include "src/main/player.asm"
 include "src/main/input.asm"
 include "src/main/math.inc"
@@ -10,9 +11,9 @@ include "src/main/background.asm"
 include "src/main/tilemap.inc"
 include "src/main/sprites.inc"
 
-DEF HORIZONTAL_MOVE_SPEED EQU 2
-DEF GRAVITY_SPEED EQU 2
-DEF MAX_SPEED EQU 180
+DEF HORIZONTAL_MOVE_SPEED EQU 8
+DEF GRAVITY_SPEED EQU 8
+DEF MAX_SPEED EQU 250
 
 
 SECTION "Header", ROM0[$100]
@@ -129,13 +130,23 @@ Loop:
 	jp Loop
 
 ActiveLoop:
+
+    call ResetNextOAMSpriteAddress
 	
 	call ScrollBackground
 	call UpdatePlayer
 	call UpdatePipes
 
+
 	jp Loop
 
+
+wCircleSprite:
+	.total db 1
+	.y db 0
+	.x db 0
+	.paette db 0
+	.tile db 0
 
 
 

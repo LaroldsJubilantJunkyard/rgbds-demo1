@@ -58,6 +58,20 @@ ScrollBackground:
 
 UpdateCameraPosition:
 
+	
+	ld a, [rLY] ; Copy the vertical line to a
+	cp a, 72
+
+	jp nc, UpdateCameraPositionScroll
+
+	ld a, 0
+	ld [rSCX], a
+
+
+	ret
+	
+UpdateCameraPositionScroll:
+
 	ld hl, rSCX
 	ld a, [mBackgroundScrollReal]
 	ld [rSCX], a

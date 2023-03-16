@@ -76,11 +76,7 @@ ResetNextOAMSpriteAddress:
     ld [wOAMSpriteAddress+1], a
     ret
 
-; 
-MACRO DrawMetasprites16BitPositions
 
-
-    ENDM
 
 DrawMetasprites:
 
@@ -156,10 +152,10 @@ MoveToNextData:
 
     ld a, [wDrawMetasprites_TotalSpriteCounter]
     dec a
-    cp a, 128
+    cp a, 0
     ld [wDrawMetasprites_TotalSpriteCounter],a
 
-    jp c,DrawMetaspritesLoop
+    jp nz,DrawMetaspritesLoop
 
     ret
 

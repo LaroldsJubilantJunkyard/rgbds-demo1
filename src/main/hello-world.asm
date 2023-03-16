@@ -105,6 +105,7 @@ ClearOamLoop:
 
 	call InitializeBackground
 	call InitializePlayer
+	call InitPipes
 
 	; Turn the LCD on
 	ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
@@ -137,17 +138,7 @@ ActiveLoop:
 	call UpdatePlayer
 	call UpdatePipes
 
-
 	jp Loop
-
-
-wCircleSprite:
-	.total db 1
-	.y db 0
-	.x db 0
-	.paette db 0
-	.tile db 0
-
 
 
 SECTION "GameVariables", WRAM0

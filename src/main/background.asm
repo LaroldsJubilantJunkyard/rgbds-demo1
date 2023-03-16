@@ -58,6 +58,7 @@ ScrollBackground:
 
 UpdateCameraPosition:
 
+	jp  UpdateCameraPositionScroll
 	
 	ld a, [rLY] ; Copy the vertical line to a
 	cp a, 72

@@ -343,6 +343,14 @@ MoveUp:
 
 
 
+
+wCircleSprite:
+	.total db 1
+	.y db 0
+	.x db 0
+	.paette db 0
+
+
 SECTION "PlayerVariables", WRAM0
 
 ; Our ball's position

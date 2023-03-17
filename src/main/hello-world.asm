@@ -2,6 +2,7 @@ INCLUDE "src/main/hardware.inc"
 include "src/main/happy-face.z80"
 include "src/main/happy-face.inc"
 include "src/main/metasprites.asm"
+include "src/main/signed-16bit-integer.asm"
 include "src/main/player.asm"
 include "src/main/input.asm"
 include "src/main/math.inc"
@@ -105,7 +106,7 @@ ClearOamLoop:
 
 	call InitializeBackground
 	call InitializePlayer
-	call InitPipes
+	;call InitPipes
 
 	; Turn the LCD on
 	ld a, LCDCF_ON | LCDCF_BGON | LCDCF_OBJON
@@ -136,7 +137,7 @@ ActiveLoop:
 	
 	call ScrollBackground
 	call UpdatePlayer
-	call UpdatePipes
+	;call UpdatePipes
 
 	jp Loop
 

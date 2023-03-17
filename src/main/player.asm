@@ -5,14 +5,12 @@
 InitializePlayer:
 
 	ld a,0
-	ld [mBallVelocityDirection], a
+	ld [mBallVelocity+0], a
+	ld [mBallVelocity+1], a
 
-	ld a,0
-	ld [mBallVelocity], a
-
-	ld a, 5
-	ld [wBallPosition.y+0], a
 	ld a, 0
+	ld [wBallPosition.y+0], a
+	ld a, 5
 	ld [wBallPosition.y+1], a
 
 	ld a, 0
@@ -24,6 +22,7 @@ InitializePlayer:
 
 UpdatePlayer:
 
+
     ; What game state is it
     ld a, [wGameState]
     cp a, 2
@@ -32,17 +31,14 @@ UpdatePlayer:
     jp z, ReadyGameState
 
 
-	ld a, 5
-	ld [wBallPosition.y+0], a
+
 	ld a, 0
+	ld [wBallPosition.y+0], a
+	ld a, 5
 	ld [wBallPosition.y+1], a
 
-	ld a, [wBallPosition.x+1]
-    add a, HORIZONTAL_MOVE_SPEED
-    ld [wBallPosition.x+1], a
-    ld a, [wBallPosition.x+0]
-    adc a, 0
-    ld [wBallPosition.x+0], a
+	Increase16BitValue wBallPosition.x, HORIZONTAL_MOVE_SPEED
+
     
     call UpdatePlayerSpriteOAMPosition
 
@@ -51,16 +47,16 @@ UpdatePlayer:
 	ld a, [wBallPosition.x+1]
     ld c, a
 
-    srl b
-    rr c
-    srl b
-    rr c
-    srl b
-    rr c
-    srl b
-    rr c
+    srl c
+    rr b
+    srl c
+    rr b
+    srl c
+    rr b
+    srl c
+    rr b
 
-    ld a, c
+    ld a, b
 
     cp a, 80
 
@@ -97,155 +93,68 @@ AciveGameState:
 
     call PollForInput
 
-	; Get th hi
-	ld a, [mBallVelocityDirection]
-	cp a, 0
-
-	; Go to the proper moving direction
-	call z, MovingDown
-
-	; Get the ball direction
-	ld a, [mBallVelocityDirection]
-	cp a, 0
-
-	call nz, MovingUp
-
-	ret
-
-MovingUp:
-
-
-	call DecreaseVelocingMovingUp
-	call c, SwitchToMovingDown 
-
-	jp ApplyVelocity
-
-SwitchToMovingDown:
-
-	ld a, 0
-	ld [mBallVelocityDirection],a
-	ld [mBallVelocity],a
-
-	ret
-
-MovingDown:
-
-	; Check our velocity
-	ld a, [mBallVelocity]
-	cp a, MAX_SPEED
-
-	; if our value is at MAX_SPEED
-	; Skip increase
-	jp z, ApplyVelocity
-
-	jp nc, IncreaseVelocityMovingDown
-
-	ld a, MAX_SPEED
-	ld [mBallVelocity], a
-
-	jp ApplyVelocity
-
-DecreaseVelocingMovingUp:
-
-	; Decrease our velocity
-	ld a, [mBallVelocity]
-	sub a, GRAVITY_SPEED
-	ld [mBallVelocity], a
-
-	call c, SwitchToMovingDown 
+	Increase16BitValue mBallVelocity, GRAVITY_SPEED
 	
+	; Decrease our low byte by gravity
+	ld a, [mBallVelocity+0]
+	ld b, a
+	ld a, [mBallVelocity+1]
+	ld c, a
+
+	ld d,c
+
+	; turn off the most significant bit before we apply
+	ld a, c
+	and a, %01111111
+	ld c, a
+
+	srl c
+	rr b
+	srl c
+	rr b
+	srl c
+	rr b
+	srl c
+	rr b
+
+	bit 7, d
+
+	jp z, IncreasePlayerYPosition
+	jp DecreasePlayerYPosition
+
+LimitB:
+
+	ld a, 16
+	ld b, a
+
+ret
+
+DecreasePlayerYPosition:
+
+	Decrease16BitValue wBallPosition.y, b
+    call UpdatePlayerSpriteOAMPosition
+	ret
+
+
+IncreasePlayerYPosition:
+
+	ld a,b
+	cp a, 16
+
+	call c, LimitB
+
+	Increase16BitValue wBallPosition.y, b
+    call UpdatePlayerSpriteOAMPosition
 
 	ret
 
-IncreaseVelocityMovingDown:
-
-	ld [mBallVelocity], a
-	add a, GRAVITY_SPEED
-	ld [mBallVelocity], a
-
-	jp ApplyVelocity
-
-ApplyVelocity:
-
-	ld a, [mBallVelocity]
-
-	; Get the non-scaled version of our velocity
-	; Shift right to divide
-	srl a
-	srl a
-	srl a
-	srl a
-
-	; save our non scaled version (the low bit) of velocity in d
-	ld d, a
-
-	ld a, [mBallVelocityDirection]
-	cp a, 0
-
-	;
-	jp nz,ApplyVelocityMovingUp
-	jp ApplyVelocityMovingDown
-
-ApplyVelocityMovingDown:
-
-	; Get
-	ld a, [wBallPosition.y+0]
-	ld b, a
-	ld a, [wBallPosition.y+1]
-	ld c, a
-
-	; load the low byte into a
-	; increase by d
-	; 
-	ld a, c
-	add a, d
-	ld c, a
-	ld a, b
-	adc a, 0
-	ld b, a
-
-    ; Update our y position variable
-	ld hl, wBallPosition.y
-	ld a,  b
-	ld  [hli], a
-	ld a,  c
-	ld  [hld], a
-
-	jp UpdatePlayerSpriteOAMPosition
-
-ApplyVelocityMovingUp:
-
-	; Get
-	ld a, [wBallPosition.y+0]
-	ld b, a
-	ld a, [wBallPosition.y+1]
-	ld c, a
-
-	; load the low byte into a
-	; increase by d
-	; 
-	ld a, c
-	sub a, d
-	ld c, a
-	ld a, b
-	sbc a, 0
-	ld b, a
-
-    ; Update our y position variable
-	ld hl, wBallPosition.y
-	ld a,  b
-	ld  [hli], a
-	ld a,  c
-	ld  [hld], a
-
-	jp UpdatePlayerSpriteOAMPosition
 
 UpdatePlayerSpriteOAMPosition:
 
 	; load our value into bc
-	ld a, [wBallPosition.y+0]
-	ld b, a
 	ld a, [wBallPosition.y+1]
+	ld b, a
+	ld a, [wBallPosition.y+0]
 	ld c, a
 
 	; x4 = division by 16
@@ -266,9 +175,9 @@ UpdatePlayerSpriteOAMPosition:
 
 
 	; load our value into bc
-	ld a, [wBallPosition.x+0]
-	ld b, a
 	ld a, [wBallPosition.x+1]
+	ld b, a
+	ld a, [wBallPosition.x+0]
 	ld c, a
 
 	; x4 = division by 16
@@ -333,11 +242,11 @@ SkipInput:
 
 MoveUp:
 
-	ld a, 1
-	ld [mBallVelocityDirection], a
 	ld a, MAX_SPEED
-	ld [mBallVelocity], a
+	ld [mBallVelocity+0], a
 
+	ld a, %10000000
+	ld [mBallVelocity+1], a
 
 	ret
 
@@ -359,5 +268,4 @@ wBallPosition:
 	.x dw
 	.y dw
 
-mBallVelocity: db
-mBallVelocityDirection: db
+mBallVelocity: dw

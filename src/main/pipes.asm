@@ -1,7 +1,7 @@
 
 
  DEF PIPES_BYTE_COUNT EQU 4
- DEF PIPES_COUNT EQU 1
+ DEF PIPES_COUNT EQU 2
  DEF PIPE_NOT_VISIBLE EQU 0
  DEF PIPE_VISIBLE EQU 1
  DEF TOP_PIPE EQU 1
@@ -30,33 +30,126 @@ wDrawHeight:DB
 
 InitPipes:
 
+    ld a,200
+    ld b, a
+    ld c,0
+
+    push bc
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
     ld a, 1
     ld [wPipes+0], a
-    ld [wPipes+3], a
-    ld a, 0
+    ld a, b
     ld [wPipes+1], a
+    ld a, c
     ld [wPipes+2], a
+    ld a, 0
+    ld [wPipes+3], a
+
+    pop bc
+    push bc
+
+    ld a, b
+    add a, 64
+    ld b, a
+    ld a, c
+    adc a, 0
+    ld c, a
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
 
     ld a, 1
     ld [wPipes+4], a
-    ld [wPipes+7], a
-    ld a, 0
+    ld a, b
     ld [wPipes+5], a
+    ld a, c
     ld [wPipes+6], a
+    ld a, 0
+    ld [wPipes+7], a
+
+    pop bc
+    push bc
+
+
+    ld a, b
+    add a, 64
+    ld b, a
+    ld a, c
+    adc a, 0
+    ld c, a
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
 
     ld a, 1
     ld [wPipes+8], a
-    ld [wPipes+11], a
-    ld a, 0
+    ld a, b
     ld [wPipes+9], a
+    ld a, c
     ld [wPipes+10], a
+    ld a, 0
+    ld [wPipes+11], a
+
+    pop bc
+
+
+    ld a, b
+    add a, 64
+    ld b, a
+    ld a, c
+    adc a, 0
+    ld c, a
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
+
+    sla b
+    rl c
 
     ld a, 1
     ld [wPipes+12], a
-    ld [wPipes+15], a
-    ld a, 0
+    ld a, b
     ld [wPipes+13], a
+    ld a,c
     ld [wPipes+14], a
+    ld a, 0
+    ld [wPipes+15], a
 
 UpdatePipes:
 
@@ -77,7 +170,7 @@ UpdateNextPipe:
     ld a, [wPipeCounter]
     inc a
     ld [wPipeCounter], a
-    cp a, PIPES_COUNT+1
+    cp a, PIPES_COUNT
     ret z
 
     IncreaseAddress wCurrentPipeAddress, PIPES_BYTE_COUNT

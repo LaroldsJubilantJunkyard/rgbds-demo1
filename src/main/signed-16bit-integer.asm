@@ -1,158 +1,321 @@
 
- SECTION "Signed16BitInteger", ROM0
+SECTION "Signed16BitIntegerVariables", WRAM0
+
+mChangeSign: db
+mChangeValue: db
+mNewLow: db
+mNewHigh: db
+mLowCarry:db
+mHighCarry:db
+mAddressOfTarget16BitInteger: dw
+
+SECTION "Signed16BitInteger", ROM0
+
+;IncreaseValue myPointer, myOtherPointer
+MACRO Change16BitValue_By_16BitValue
 
 
-
-;Decrease Value myPointer, r8 (amount)
-MACRO Increase16BitValue
-
-    ; Save these values because we will use them
+    ; save these values
+    push hl
     push bc
     push de
-    push hl
 
-
-    ; save our first value in hl
-    ; Save our second value in e
-    ld e, \2
-    ld hl, \1
-
-    push hl
-
-    ; Get the low byte in b,
-    ; get the high byte in c
-    ld a, [\1+0]
+    ; load scaled low byte of other value in b
+    ; load scaled high byte of other value in c
+    ld hl, \2
+    ld a, [hli]
     ld b, a
-    ld a, [\1+1]
+    ld a, [hl]
+
+    ; Save the high byte in c & d
+    ; c will be unscaled
     ld c, a
+    ld d, a
 
-    CheckMSBInC  IncreaseValueFunction, DecreaseValueFunction
-
-    ENDM
-
-
-;Decrease Value myPointer, r8 (amount)
-MACRO Decrease16BitValue
-
-    ; Save these values because we will use them
-    push bc
-    push de
-    push hl
-
-    ; save our first value in hl
-    ; Save our second value in e
-    ld e, \2
-    ld hl, \1
-
-    push hl
-
-    ; Get the low byte in b,
-    ; get the high byte in c
-    ld a, [\1+0]
-    ld b, a
-
-    ld a, [\1+1]
-    ld c, a
-
-
-    CheckMSBInC DecreaseValueFunction, IncreaseValueFunction
-
-    ENDM
-
-MACRO CheckMSBInC
-    ld d, c
-
-    push de
-
-    ; Check the MSB in our high byte
-    bit 7, d
-
-    ; If it's zero. It's positive
-    call z, \1
-
-    pop de
-
-    ; Check the MSB in our high byte
-    bit 7, d
-
-    ; If it's not zero. It's negative
-    call nz, \2
-
-    pop hl
-    ; Update our values in the pointer given
-    ld a, b
-    ld [hli],a
+    ; Remove the sign
     ld a, c
-    ld [hl],a
+    and a,%01111111
+    ld c, a
 
-    pop hl
+    ; unscale
+    srl c
+    rr b
+    srl c
+    rr b
+    srl c
+    rr b
+    srl c
+    rr b
+
+    ; Save the value we want to change by in our RAM variable
+    ld a, b
+    ld [mChangeValue],a
+
+    ; get our high byte
+    ld a, d
+
+    call SetChangeSignFromDsMSB
+
+    IncreaseOrDecrease16BitValue \1, 
+
+    ; restore these values
     pop de
     pop bc
+    pop hl
 
     ENDM
 
+SetChangeSignFromDsMSB:
 
+    ; get the MSB of our high byte
+    bit 7, d
 
-IncreaseValueFunction:
+    jp z, SetChangeSignFromDsMSB_Zero
 
-    ; Increase our low byte
-    ld a, b
-    add a, e
-    ld b, a
+SetChangeSignFromDsMSB_One:
 
-    ; Increase our high byte by the carryover
-    ld a, c
-    adc a, 0
-    ld c, a
+    ld a, 1
+    ld [mChangeSign], a
+
+    ret
+SetChangeSignFromDsMSB_Zero:
+
+    ld a, 0
+    ld [mChangeSign], a
 
     ret
 
-DecreaseValueFunction:
 
-    ; decrease our low byte
-    ; save the carry over in d
+
+;IncreaseValue myPointer, r8 (amount)
+MACRO Increase16BitValue_N8
+
+
+    ; save these values
+    push hl
+    push bc
+    push de
+
+    ; Save the value we want to change by in our RAM variable
+    ld a, \2
+    ld [mChangeValue],a
+
+    ld a, 0
+    ld [mChangeSign], a
+
+    IncreaseOrDecrease16BitValue \1
+
+    ; restore these values
+    pop de
+    pop bc
+    pop hl
+
+    ENDM
+
+
+;DecreaseValue myPointer, r8 (amount)
+MACRO Decrease16BitValue_N8
+
+
+    ; save these values
+    push hl
+    push bc
+    push de
+
+    ; Save the value we want to change by in our RAM variable
+    ld a, \2
+    ld [mChangeValue],a
+
+    ld a, 1
+    ld [mChangeSign], a
+
+    IncreaseOrDecrease16BitValue \1
+
+    ; restore these values
+    pop de
+    pop bc
+    pop hl
+
+    ENDM
+
+;Decrease Value myPointer, r8 (amount)
+MACRO IncreaseOrDecrease16BitValue
+
+    ; Save the address of our integer in our two RAM variables
+    ld hl, \1
+    ld a, l
+    ld [mAddressOfTarget16BitInteger+0], a
+    ld a, h
+    ld [mAddressOfTarget16BitInteger+1], a
+
+    ; Get the low byte 
+    ; get the high byte 
+    ld a, [\1+0]
+    ld [mNewLow], a
+    ld a, [\1+1]
+    ld [mNewHigh], a
+
+    call IncreaseDecrease16BitValue 
+
+    ; Update our values in the pointer given
+    ld a, [mAddressOfTarget16BitInteger+0]
+    ld l, a
+    ld a, [mAddressOfTarget16BitInteger+1]
+    ld h, a
+    ld a, [mNewLow]
+    ld [hli],a
+    ld a, [mNewHigh]
+    ld [hl],a
+
+    ENDM
+
+
+
+IncreaseDecrease16BitValue:
+
+    ld a, [mChangeSign]
+    add a, 0
+
+    jp z, IncreaseDecrease16BitValue_IncreaseOverallValue
+    jp IncreaseDecrease16BitValue_DecreaseOverallValue
+
+IncreaseDecrease16BitValue_DecreaseOverallValue:
+
+    ; Check the MSB in our high byte
+    ld a, [mNewHigh]
+    bit 7, a
+
+    ; If it's not zero. It's negative. Increase our value
+    jp nz, MoveAwayFromZero
+
+    ; if it's zero. It's positive. decrease our value
+    jp MoveTowardsZero
+    
+
+IncreaseDecrease16BitValue_IncreaseOverallValue:
+
+    ; Check the MSB in our high byte
+    ld a, [mNewHigh]
+    bit 7, a
+
+    ; If it's  zero. It's positive. Increase our value
+    jp z, MoveAwayFromZero
+
+    ; if it's NOT zero. It's negative. decrease our value
+    jp MoveTowardsZero
+
+
+
+MoveAwayFromZero:
+
+    ; get our change value
+    ld a, [mChangeValue]
+    ld b, a
+    
+    ; Increase our low byte by our change value
+    ld a, [mNewLow]
+    add a, b
+    ld [mNewLow], a
+
+    ; Increase our high byte by the carryover
+    ld a, [mNewHigh]
+    adc a, 0
+    ld [mNewHigh], a
+
+    ret
+
+MoveTowardsZero:
+
+    ; If our change value is smaller than our low byte,
+    ; Decrease normally
+    ld a, [mChangeValue]
+    ld b, a
+    ld a, [mNewLow]
+    sub a, b
+    ld d, a
+
+    jp nc, DecreaseValueFunctionNormally
+
+    ; save our carry value in b
+    ld a, 0
+    adc a,0
+    ld b ,a
+
+    ; If our carry over doesn't cause a overflow when sutracted from the high byte
+    ; Decrease normally
+    ld a, [mNewHigh]
+    and a, %01111111 ; remove the sign
+    sub a, b
+    ld e, a
+    jp nc, DecreaseValueFunctionNormally
+
+    ; Update our low value
+    ; Our low value becomes our carry over from the initial mNewLow-mChangeValue
     ld a, b
-    sub a, e
-    ld b,a
-    ld a, 0
-    adc a, 0
-    ld d, a ; save our low byte carry over in d
+    ld [mNewLow], a
 
-    ; decrease our high byte by the carry over
-    ; save our high byte carry over in e
-    ld a, c
-    sub a, d
-    ld c,a
-    ld a, 0
-    adc a, 0
-    ld e, a ; save our high byte carry over in e
+    ; get our MSB for the high
+    ld a, [mNewHigh]
+    bit 7,a
 
-    ; check our high byte carry over
-    ld a, e
-    cp a, 0
-
-    ; If we have no carry over
-    ; end the increase and decrease
-    ret nc
-
-    ; use our low byte carry over as our new low byte
-    ld b, d
-
-    bit 7,c
+    ; Set the high byte to 10000000 or 00000000
+    ; whichever is opposite of it's current sign
     jp z, SetHighMSBToOne
     jp SetHighMSBToZero
+
+
+DecreaseValueFunctionNormally:
+    ld a, [mChangeValue]
+    ld b, a
+
+    ; decrease our low byte
+    ld a, [mNewLow]
+    sub a, b
+    ld [mNewLow],a
+
+    ; Save our carry over in b
+    ld a, 0
+    adc a, 0
+    ld c, a
+
+    ld a, [mNewHigh]
+    bit 7, a
+
+    jp z, DecreaseValueFunctionNormally_Positive
+    jp DecreaseValueFunctionNormally_Negative
+
+DecreaseValueFunctionNormally_Negative:
+
+    ; decrease our high byte by the carry over
+    ld a, [mNewHigh]
+    and a, %01111111
+    sub a, c
+    or a, %10000000
+    ld [mNewHigh],a
+
+    ret
+
+DecreaseValueFunctionNormally_Positive:
+
+    ; decrease our high byte by the carry over
+    ld a, [mNewHigh]
+    sub a, c
+    ld [mNewHigh],a
+
+    ; end the increase and decrease
+    ret
 
 SetHighMSBToOne:
 
     ld a, %10000000
-    ld c, a
+    ld [mNewHigh], a
 
     ret
 
 SetHighMSBToZero:
 
     ld a, %00000000
-    ld c, a
+    ld [mNewHigh], a
     
     ret
 

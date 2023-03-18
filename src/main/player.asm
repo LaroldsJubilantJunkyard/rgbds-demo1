@@ -21,8 +21,6 @@ InitializePlayer:
     ret
 
 UpdatePlayer:
-
-
     ; What game state is it
     ld a, [wGameState]
     cp a, 2
@@ -37,7 +35,7 @@ UpdatePlayer:
 	ld a, 5
 	ld [wBallPosition.y+1], a
 
-	Increase16BitValue wBallPosition.x, HORIZONTAL_MOVE_SPEED
+	Increase16BitValue_N8 wBallPosition.x, HORIZONTAL_MOVE_SPEED
 
     
     call UpdatePlayerSpriteOAMPosition
@@ -93,7 +91,7 @@ AciveGameState:
 
     call PollForInput
 
-	Increase16BitValue mBallVelocity, GRAVITY_SPEED
+	Increase16BitValue_N8 mBallVelocity, GRAVITY_SPEED
 	
 	; Decrease our low byte by gravity
 	ld a, [mBallVelocity+0]
@@ -122,28 +120,16 @@ AciveGameState:
 	jp z, IncreasePlayerYPosition
 	jp DecreasePlayerYPosition
 
-LimitB:
-
-	ld a, 16
-	ld b, a
-
-ret
-
 DecreasePlayerYPosition:
 
-	Decrease16BitValue wBallPosition.y, b
+	Decrease16BitValue_N8 wBallPosition.y, b
     call UpdatePlayerSpriteOAMPosition
 	ret
 
 
 IncreasePlayerYPosition:
 
-	ld a,b
-	cp a, 16
-
-	call c, LimitB
-
-	Increase16BitValue wBallPosition.y, b
+	Increase16BitValue_N8 wBallPosition.y, b
     call UpdatePlayerSpriteOAMPosition
 
 	ret
@@ -156,6 +142,11 @@ UpdatePlayerSpriteOAMPosition:
 	ld b, a
 	ld a, [wBallPosition.y+0]
 	ld c, a
+	
+	; turn off the most significant bit before we apply
+	ld a, b
+	and a, %01111111
+	ld b, a
 
 	; x4 = division by 16
 	; Shift the high bit
@@ -179,6 +170,12 @@ UpdatePlayerSpriteOAMPosition:
 	ld b, a
 	ld a, [wBallPosition.x+0]
 	ld c, a
+
+	
+	; turn off the most significant bit before we apply
+	ld a, b
+	and a, %01111111
+	ld b, a
 
 	; x4 = division by 16
 	; Shift the high bit
@@ -242,7 +239,7 @@ SkipInput:
 
 MoveUp:
 
-	ld a, MAX_SPEED
+	ld a, JUMP_SPEED
 	ld [mBallVelocity+0], a
 
 	ld a, %10000000

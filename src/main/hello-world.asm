@@ -13,8 +13,9 @@ include "src/main/tilemap.inc"
 include "src/main/sprites.inc"
 
 DEF HORIZONTAL_MOVE_SPEED EQU 8
-DEF GRAVITY_SPEED EQU 8
+DEF GRAVITY_SPEED EQU 2
 DEF MAX_SPEED EQU 250
+DEF JUMP_SPEED EQU 250
 
 
 SECTION "Header", ROM0[$100]

@@ -99,63 +99,11 @@ AciveGameState:
 	ret
 
 UpdatePlayerSpriteOAMPosition:
-
-	; load our value into bc
-	ld a, [wBallPosition.y+1]
-	ld b, a
-	ld a, [wBallPosition.y+0]
-	ld c, a
 	
-	; turn off the most significant bit before we apply
-	ld a, b
-	and a, %01111111
-	ld b, a
-
-	; x4 = division by 16
-	; Shift the high bit
-	; rotate the carry over to the low bit
-	srl b
-	rr c
-	srl b
-	rr c
-	srl b
-	rr c
-	srl b
-	rr c
-
-	; Get our low bit
-	; that's our y coordinate
-	ld d, c
-
-
-	; load our value into bc
-	ld a, [wBallPosition.x+1]
-	ld b, a
-	ld a, [wBallPosition.x+0]
-	ld c, a
-
-	
-	; turn off the most significant bit before we apply
-	ld a, b
-	and a, %01111111
-	ld b, a
-
-	; x4 = division by 16
-	; Shift the high bit
-	; rotate the carry over to the low bit
-	srl b
-	rr c
-	srl b
-	rr c
-	srl b
-	rr c
-	srl b
-	rr c
-
-	
-	ld a, d
+    GetUnscaled16BitValue_InA wBallPosition.y
 	ld [wDrawMetasprites_MetaspritePosition.y], a
-	ld a, c
+
+    GetUnscaled16BitValue_InA wBallPosition.x
 	ld [wDrawMetasprites_MetaspritePosition.x], a
 
 	LoadMetaspriteAddressAndDraw wCircleSprite

@@ -11,6 +11,40 @@ mAddressOfTarget16BitInteger: dw
 
 SECTION "Signed16BitInteger", ROM0
 
+MACRO GetUnscaled16BitValue_InA
+
+    ; Save this value, since we will be modifying its registers
+    push bc
+    
+    ; low byte into b, high byte into c
+    ld a, [\1+0]
+    ld b, a
+    ld a, [\1+1]
+    ld c, a
+
+    ; remove the sign
+    ld a, c
+    and a, %01111111
+    ld c, a
+
+    ; unscale
+    srl c
+    rr b
+    srl c
+    rr b
+    srl c
+    rr b
+    srl c
+    rr b
+
+    ; Save the low byte in a
+    ld a, b
+
+    ;Restore these registers
+    pop bc
+
+ENDM
+
 ;IncreaseValue myPointer, myOtherPointer
 MACRO Change16BitValue_By_16BitValue
 
@@ -86,8 +120,7 @@ SetChangeSignFromDsMSB_Zero:
     ret
 
 
-
-;IncreaseValue myPointer, r8 (amount)
+;IncreaseValue myValue, r8 (amount)
 MACRO Increase16BitValue_N8
 
 
@@ -113,7 +146,7 @@ MACRO Increase16BitValue_N8
     ENDM
 
 
-;DecreaseValue myPointer, r8 (amount)
+;DecreaseValue myValue, r8 (amount)
 MACRO Decrease16BitValue_N8
 
 

@@ -138,7 +138,7 @@ ActiveLoop:
 	
 	call ScrollBackground
 	call UpdatePlayer
-	;call UpdatePipes
+	call UpdatePipes
 
 	jp Loop
 

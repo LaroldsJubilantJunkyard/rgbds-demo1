@@ -38,6 +38,21 @@ MACRO LoadAddressIntoHL
 
     ENDM
 
+MACRO DecreaseAddress
+
+    
+    ; Decrese the metasprite data address by one
+    ; The irst byte will always bee the total sprite counter
+    ld a, [\1+0]
+    sub a, \2
+    ld [\1+0], a
+    ld a, [\1+1]
+    sbc a, 0
+    ld [\1+1], a
+
+    ENDM
+
+
 MACRO IncreaseAddress
 
     

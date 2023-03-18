@@ -189,7 +189,7 @@ UpdatePipesLoop:
     sub a, HORIZONTAL_MOVE_SPEED ; apply motion
     ld [hli],a
     ld c, a ; save the low byte in c
-
+    
     ; Get our high byte
     ld a, [hl]
     sbc a, 0 ; apply the carry over and update
@@ -205,7 +205,7 @@ UpdatePipesLoop:
     rr c
     srl b
     rr c
-
+    
     ld h, c
     ld l , 0
     push hl
@@ -229,7 +229,7 @@ UpdatePipesLoop:
 	ld [wDrawMetasprites_MetaspritePosition.x], a
 
     LoadMetaspriteAddressAndDraw wBottomPipe1
-
+    
     jp UpdateNextPipe
 
 

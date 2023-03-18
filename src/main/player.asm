@@ -92,48 +92,11 @@ AciveGameState:
     call PollForInput
 
 	Increase16BitValue_N8 mBallVelocity, GRAVITY_SPEED
+	Change16BitValue_By_16BitValue  wBallPosition.y, mBallVelocity
 	
-	; Decrease our low byte by gravity
-	ld a, [mBallVelocity+0]
-	ld b, a
-	ld a, [mBallVelocity+1]
-	ld c, a
-
-	ld d,c
-
-	; turn off the most significant bit before we apply
-	ld a, c
-	and a, %01111111
-	ld c, a
-
-	srl c
-	rr b
-	srl c
-	rr b
-	srl c
-	rr b
-	srl c
-	rr b
-
-	bit 7, d
-
-	jp z, IncreasePlayerYPosition
-	jp DecreasePlayerYPosition
-
-DecreasePlayerYPosition:
-
-	Decrease16BitValue_N8 wBallPosition.y, b
-    call UpdatePlayerSpriteOAMPosition
-	ret
-
-
-IncreasePlayerYPosition:
-
-	Increase16BitValue_N8 wBallPosition.y, b
     call UpdatePlayerSpriteOAMPosition
 
 	ret
-
 
 UpdatePlayerSpriteOAMPosition:
 
